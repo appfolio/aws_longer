@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import base64
 import json
@@ -204,7 +203,3 @@ def validate_account(account):
         )
 
     return accounts[account]
-
-
-if __name__ == "__main__":
-    sys.exit(main())

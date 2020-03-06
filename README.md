@@ -2,7 +2,7 @@
 
 `aws_longer` is a tool to replace
 [assume-role](https://github.com/coinbase/assume-role) with a few significant
-benefits.
+benefits:
 
 1) MFA tokens need only be entered once every 36 hours.
 2) Sessions can be shared across terminals, and persist across reboots.
