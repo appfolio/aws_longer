@@ -32,7 +32,7 @@ setup(
     description="A program to create deterministic zip files.",
     entry_points={"console_scripts": [f"{PACKAGE_NAME} = {PACKAGE_NAME}:main"]},
     extras_require=extras_require,
-    install_requires=["keyring"],
+    install_requires=["boto3", "keyring"],
     keywords="aws assume-role mfa session-token",
     license="Simplified BSD License",
     long_description=README,
