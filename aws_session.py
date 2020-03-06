@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import base64
+import json
 import os
 import pickle
 import sys
@@ -11,6 +12,8 @@ import boto3
 import botocore
 import keyring
 
+
+ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_session"
 
 
@@ -98,7 +101,11 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     role_parser = subparsers.add_parser("role")
     role_parser.add_argument("role")
-    role_parser.add_argument("account")
+    role_parser.add_argument(
+        "account",
+        help=f"Either an AWS account number, or the name of a key that maps to an account number in {ACCOUNT_MAPPING_FILENAME}.",
+        type=validate_account,
+    )
 
     arguments = parser.parse_args()
     if arguments.cleanup:
@@ -157,6 +164,33 @@ def set_environment(token):
     os.environ["AWS_ACCESS_KEY_ID"] = token["AccessKeyId"]
     os.environ["AWS_SECRET_ACCESS_KEY"] = token["SecretAccessKey"]
     os.environ["AWS_SESSION_TOKEN"] = token["SessionToken"]
+
+
+def validate_account(account):
+    if account.isnumeric():
+        return account
+
+    try:
+        with open(ACCOUNT_MAPPING_FILENAME) as fp:
+            accounts = json.load(fp)
+    except FileNotFoundError as exception:
+        raise argparse.ArgumentTypeError(exception)
+    except json.JSONDecodeError:
+        raise argparse.ArgumentTypeError(
+            f"{fp.name} does not appear to be a valid JSON file"
+        )
+
+    if not isinstance(accounts, dict):
+        raise argparse.ArgumentTypeError(
+            f"{ACCOUNT_MAPPING_FILENAME} is not in the correct format"
+        )
+
+    if account not in accounts:
+        raise argparse.ArgumentTypeError(
+            f"{account} is not found in {ACCOUNT_MAPPING_FILENAME}"
+        )
+
+    return accounts[account]
 
 
 if __name__ == "__main__":
