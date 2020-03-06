@@ -108,6 +108,11 @@ def main():
         default=discover_shell(),
     )
     parser.add_argument(
+        "-m",
+        "--mfa-token",
+        help="When a MFA token is required, pass in this value instead of prompting for it.",
+    )
+    parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
@@ -126,7 +131,7 @@ def main():
         return 0
 
     clean_environment()
-    token = session_token()
+    token = session_token(mfa_token=arguments.mfa_token)
     if arguments.command == "role":
         client = boto3_session().client(
             aws_access_key_id=token["AccessKeyId"],
@@ -154,12 +159,12 @@ def mfa_serial_number():
 
 
 @cache_in_keyring
-def session_token():
+def session_token(mfa_token=None):
     client = boto3_session().client("sts")
     response = None
     while response is None:
         mfa_serial = mfa_serial_number()
-        mfa_token = input("MFA Token: ")
+        mfa_token = mfa_token or input("MFA Token: ")
         try:
             response = client.get_session_token(
                 DurationSeconds=129600, SerialNumber=mfa_serial, TokenCode=mfa_token,
@@ -169,6 +174,7 @@ def session_token():
             botocore.exceptions.ParamValidationError,
         ) as exception:
             print(exception)
+            mfa_token = None
     return response["Credentials"]
 
 

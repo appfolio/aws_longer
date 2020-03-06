@@ -70,3 +70,15 @@ file of the following format:
 This aliasing format is the same as was used in
 [assume-role](https://github.com/coinbase/assume-role#account-aliasing) in
 order to ease transitioning.
+
+## Avoid token prompting
+
+If you happen to use a program to generate your MFA token, you might prefer to
+pass the token directly as part of the command invocation instead of via a
+prompt to STDIN. Do that via:
+
+```sh
+aws_longer --mfa-token role ROLENAME AWS_ACCOUNT
+```
+
+In said cases, the MFA token will only be used if it's necessary to do so.
