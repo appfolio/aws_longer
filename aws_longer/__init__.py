@@ -38,7 +38,7 @@ def cache_in_keyring(function):
         if kwargs.get("account"):
             username = f"{kwargs['account']}_{kwargs['role']}"
         else:
-            username = ""
+            username = "root"
 
         serialized = keyring.get_password(
             service_name=KEYRING_SERVICE_NAME, username=username
@@ -78,7 +78,7 @@ def handle_cleanup(arguments):
     if arguments.command == "role":
         username = f"{arguments.account}_{arguments.role}"
     else:
-        username = ""
+        username = "root"
     try:
         keyring.delete_password(service_name=KEYRING_SERVICE_NAME, username=username)
     except keyring.errors.PasswordDeleteError:
