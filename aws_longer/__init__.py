@@ -12,7 +12,7 @@ import botocore
 import keyring
 
 
-__version__ = "0.1"
+__version__ = "0.1.1"
 ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_longer"
 
