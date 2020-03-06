@@ -70,6 +70,10 @@ def clean_environment():
             del os.environ[name]
 
 
+def discover_shell():
+    return os.environ.get("SHELL", "/bin/sh")
+
+
 def handle_cleanup(arguments):
     if arguments.command == "role":
         username = f"{arguments.account}_{arguments.role}"
@@ -96,6 +100,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--cleanup", action="store_true", help="Delete cached token from keychain."
+    )
+    parser.add_argument(
+        "-s",
+        "--shell",
+        help="The shell to exec (default: %(default)s).",
+        default=discover_shell(),
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -124,8 +134,7 @@ def main():
         token = role_token(client, account=arguments.account, role=arguments.role)
     set_environment(token)
 
-    shell = "zsh"
-    os.execlp(shell, shell)
+    os.execlp(arguments.shell, arguments.shell)
 
 
 def mfa_serial_number():
