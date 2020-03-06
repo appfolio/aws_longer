@@ -13,6 +13,7 @@ import botocore
 import keyring
 
 
+__version__ = "0.1"
 ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_session"
 
@@ -106,6 +107,9 @@ def main():
         "--shell",
         help="The shell to exec (default: %(default)s).",
         default=discover_shell(),
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     subparsers = parser.add_subparsers(dest="command")
