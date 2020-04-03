@@ -40,7 +40,7 @@ def cache_in_keyring(function):
         if kwargs.get("account"):
             username = f"{kwargs['account']}_{kwargs['role']}"
         else:
-            username = ""
+            username = "__SESSION__"
 
         serialized = keyring.get_password(
             service_name=KEYRING_SERVICE_NAME, username=username
