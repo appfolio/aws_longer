@@ -12,9 +12,11 @@ import botocore
 import keyring
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_longer"
+ROLE_TOKEN_DURATION = 3600
+SESSION_TOKEN_DURATION = 129600
 
 
 def _boto3_session_closure():
@@ -38,7 +40,7 @@ def cache_in_keyring(function):
         if kwargs.get("account"):
             username = f"{kwargs['account']}_{kwargs['role']}"
         else:
-            username = ""
+            username = "__SESSION__"
 
         serialized = keyring.get_password(
             service_name=KEYRING_SERVICE_NAME, username=username
@@ -86,9 +88,9 @@ def handle_cleanup(arguments):
 
 
 @cache_in_keyring
-def role_token(client, *, account, role):
-    response = client.assume_role(
-        DurationSeconds=3600,
+def role_token(client_callback, *, account, role):
+    response = client_callback().assume_role(
+        DurationSeconds=ROLE_TOKEN_DURATION,
         ExternalId=account,
         RoleArn=f"arn:aws:iam::{account}:role/{role}",
         RoleSessionName=os.environ.get("USER", "__"),
@@ -131,15 +133,22 @@ def main():
         return 0
 
     clean_environment()
-    token = session_token(mfa_token=arguments.mfa_token)
     if arguments.command == "role":
-        client = boto3_session().client(
-            aws_access_key_id=token["AccessKeyId"],
-            aws_secret_access_key=token["SecretAccessKey"],
-            aws_session_token=token["SessionToken"],
-            service_name="sts",
+
+        def client_callback():
+            token = session_token(mfa_token=arguments.mfa_token)
+            return boto3_session().client(
+                aws_access_key_id=token["AccessKeyId"],
+                aws_secret_access_key=token["SecretAccessKey"],
+                aws_session_token=token["SessionToken"],
+                service_name="sts",
+            )
+
+        token = role_token(
+            client_callback, account=arguments.account, role=arguments.role
         )
-        token = role_token(client, account=arguments.account, role=arguments.role)
+    else:
+        token = session_token(mfa_token=arguments.mfa_token)
     set_environment(token)
 
     os.execlp(arguments.shell, arguments.shell)
@@ -167,7 +176,9 @@ def session_token(mfa_token=None):
         mfa_token = mfa_token or input("MFA Token: ")
         try:
             response = client.get_session_token(
-                DurationSeconds=129600, SerialNumber=mfa_serial, TokenCode=mfa_token,
+                DurationSeconds=SESSION_TOKEN_DURATION,
+                SerialNumber=mfa_serial,
+                TokenCode=mfa_token,
             )
         except (
             botocore.exceptions.ClientError,
