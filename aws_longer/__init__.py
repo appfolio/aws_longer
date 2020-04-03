@@ -88,8 +88,8 @@ def handle_cleanup(arguments):
 
 
 @cache_in_keyring
-def role_token(client, *, account, role):
-    response = client.assume_role(
+def role_token(client_callback, *, account, role):
+    response = client_callback().assume_role(
         DurationSeconds=ROLE_TOKEN_DURATION,
         ExternalId=account,
         RoleArn=f"arn:aws:iam::{account}:role/{role}",
@@ -133,15 +133,22 @@ def main():
         return 0
 
     clean_environment()
-    token = session_token(mfa_token=arguments.mfa_token)
     if arguments.command == "role":
-        client = boto3_session().client(
-            aws_access_key_id=token["AccessKeyId"],
-            aws_secret_access_key=token["SecretAccessKey"],
-            aws_session_token=token["SessionToken"],
-            service_name="sts",
+
+        def client_callback():
+            token = session_token(mfa_token=arguments.mfa_token)
+            return boto3_session().client(
+                aws_access_key_id=token["AccessKeyId"],
+                aws_secret_access_key=token["SecretAccessKey"],
+                aws_session_token=token["SessionToken"],
+                service_name="sts",
+            )
+
+        token = role_token(
+            client_callback, account=arguments.account, role=arguments.role
         )
-        token = role_token(client, account=arguments.account, role=arguments.role)
+    else:
+        token = session_token(mfa_token=arguments.mfa_token)
     set_environment(token)
 
     os.execlp(arguments.shell, arguments.shell)
