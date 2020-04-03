@@ -78,7 +78,7 @@ pass the token directly as part of the command invocation instead of via a
 prompt to STDIN. Do that via:
 
 ```sh
-aws_longer --mfa-token role ROLENAME AWS_ACCOUNT
+aws_longer --mfa-token TOKEN role ROLENAME AWS_ACCOUNT
 ```
 
 In said cases, the MFA token will only be used if it's necessary to do so.
