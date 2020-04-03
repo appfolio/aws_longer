@@ -15,6 +15,8 @@ import keyring
 __version__ = "0.2.0"
 ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_longer"
+ROLE_TOKEN_DURATION = 3600
+SESSION_TOKEN_DURATION = 129600
 
 
 def _boto3_session_closure():
@@ -88,7 +90,7 @@ def handle_cleanup(arguments):
 @cache_in_keyring
 def role_token(client, *, account, role):
     response = client.assume_role(
-        DurationSeconds=3600,
+        DurationSeconds=ROLE_TOKEN_DURATION,
         ExternalId=account,
         RoleArn=f"arn:aws:iam::{account}:role/{role}",
         RoleSessionName=os.environ.get("USER", "__"),
@@ -167,7 +169,9 @@ def session_token(mfa_token=None):
         mfa_token = mfa_token or input("MFA Token: ")
         try:
             response = client.get_session_token(
-                DurationSeconds=129600, SerialNumber=mfa_serial, TokenCode=mfa_token,
+                DurationSeconds=SESSION_TOKEN_DURATION,
+                SerialNumber=mfa_serial,
+                TokenCode=mfa_token,
             )
         except (
             botocore.exceptions.ClientError,
