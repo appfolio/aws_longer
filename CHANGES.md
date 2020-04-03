@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.2.1 (2020/04/03)
+
+__Fixed__
+
+* Only prompt for session MFA when it actually is needed.
+* Avoid pulling in a random role token as the session token when the session
+  token expires.
+
 ## 0.2.0 (2020/03/06)
 
 __Added__
