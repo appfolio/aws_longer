@@ -1,5 +1,16 @@
 # Change Log
 
+## 0.3.0 (2020/04/17)
+
+__Added__
+
+* Support yubikeys via the `--yubikey NAME` argument.
+
+__Fixed__
+
+* `--cleanup` works again for clearing the temporary credentials (non-role
+  based one)
+
 ## 0.2.1 (2020/04/03)
 
 __Fixed__

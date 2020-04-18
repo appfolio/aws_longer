@@ -17,6 +17,7 @@ extras_require = {
     "test": ["pytest"],
 }
 extras_require["development"] = sorted(set(sum(extras_require.values(), [])))
+extras_require["yubikey"] = ["yubikey-manager"]
 
 
 setup(

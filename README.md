@@ -18,6 +18,12 @@ Install this package via:
 pip install aws_longer
 ```
 
+If you'd like to use this package with your yubikey please run:
+
+```sh
+pip install aws_longer[yubikey]  # Escape the brackets in zsh
+```
+
 ## Assuming a Role
 
 ```sh
@@ -82,3 +88,17 @@ aws_longer --mfa-token TOKEN role ROLENAME AWS_ACCOUNT
 ```
 
 In said cases, the MFA token will only be used if it's necessary to do so.
+
+### Yubikeys
+
+If you are using a Yubikey in TOTP mode, you can use it via:
+
+```sh
+aws_longer --yubikey NAME role ROLENAME AWS_ACCOUNT
+```
+
+To discover the name on your yubikey, you can list all names via:
+
+```sh
+ykman oath list
+```

@@ -12,11 +12,12 @@ import botocore
 import keyring
 
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_longer"
 ROLE_TOKEN_DURATION = 3600
 SESSION_TOKEN_DURATION = 129600
+SESSION_KEYRING_USERNAME = "__SESSION__"
 
 
 def _boto3_session_closure():
@@ -40,7 +41,7 @@ def cache_in_keyring(function):
         if kwargs.get("account"):
             username = f"{kwargs['account']}_{kwargs['role']}"
         else:
-            username = "__SESSION__"
+            username = SESSION_KEYRING_USERNAME
 
         serialized = keyring.get_password(
             service_name=KEYRING_SERVICE_NAME, username=username
@@ -76,11 +77,31 @@ def discover_shell():
     return os.environ.get("SHELL", "/bin/sh")
 
 
+def get_token(arguments, mfa_token_callback):
+    if arguments.command == "role":
+
+        def client_callback():
+            token = session_token(mfa_token_callback=mfa_token_callback)
+            return boto3_session().client(
+                aws_access_key_id=token["AccessKeyId"],
+                aws_secret_access_key=token["SecretAccessKey"],
+                aws_session_token=token["SessionToken"],
+                service_name="sts",
+            )
+
+        token = role_token(
+            client_callback, account=arguments.account, role=arguments.role
+        )
+    else:
+        token = session_token(mfa_token_callback=mfa_token_callback)
+    return token
+
+
 def handle_cleanup(arguments):
     if arguments.command == "role":
         username = f"{arguments.account}_{arguments.role}"
     else:
-        username = ""
+        username = SESSION_KEYRING_USERNAME
     try:
         keyring.delete_password(service_name=KEYRING_SERVICE_NAME, username=username)
     except keyring.errors.PasswordDeleteError:
@@ -112,10 +133,14 @@ def main():
     parser.add_argument(
         "-m",
         "--mfa-token",
-        help="When a MFA token is required, pass in this value instead of prompting for it.",
+        help="When an MFA token is required, pass in this value instead of prompting for it.",
     )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "--yubikey",
+        help="When an MFA token is required, obtain it from the attached yubikey using the provided name.",
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -128,28 +153,46 @@ def main():
     )
 
     arguments = parser.parse_args()
+    if arguments.mfa_token and arguments.yubikey:
+        parser.error("Cannot provide both --mfa-token and --yubikey")
+        return 1
+
     if arguments.cleanup:
         handle_cleanup(arguments)
         return 0
 
-    clean_environment()
-    if arguments.command == "role":
-
-        def client_callback():
-            token = session_token(mfa_token=arguments.mfa_token)
-            return boto3_session().client(
-                aws_access_key_id=token["AccessKeyId"],
-                aws_secret_access_key=token["SecretAccessKey"],
-                aws_session_token=token["SessionToken"],
-                service_name="sts",
+    def mfa_token_callback():
+        if arguments.mfa_token:
+            return arguments.mfa_token
+        if arguments.yubikey is None:
+            return None
+        try:
+            import ykman
+        except ModuleNotFoundError:
+            print(
+                "Please ensure ykman is installed. Try: `pip install aws_longer[yubikey]`"
             )
+            return None
+        import subprocess
 
-        token = role_token(
-            client_callback, account=arguments.account, role=arguments.role
+        process = subprocess.run(
+            ["ykman", "oath", "code", "--single", arguments.yubikey],
+            stdout=subprocess.PIPE,
         )
-    else:
-        token = session_token(mfa_token=arguments.mfa_token)
-    set_environment(token)
+        if process.returncode != 0:
+            raise GracefulExit
+        return process.stdout.strip().decode("utf-8")
+
+    clean_environment()
+
+    try:
+        token = get_token(arguments, mfa_token_callback)
+    except GracefulExit:
+        print("Leaving aws_longer.")
+        token = None
+
+    if token:
+        set_environment(token)
 
     os.execlp(arguments.shell, arguments.shell)
 
@@ -163,17 +206,23 @@ def mfa_serial_number():
         sys.exit(1)
     assert (
         len(devices) == 1
-    ), "How is it possible that there is more than one MFA device?"
+    ), "How is it possible that there are more than one MFA device?"
     return devices[0]["SerialNumber"]
 
 
 @cache_in_keyring
-def session_token(mfa_token=None):
+def session_token(mfa_token_callback):
     client = boto3_session().client("sts")
+    mfa_serial = mfa_serial_number()
+    mfa_token = mfa_token_callback()
     response = None
     while response is None:
-        mfa_serial = mfa_serial_number()
-        mfa_token = mfa_token or input("MFA Token: ")
+        try:
+            mfa_token = mfa_token or input("MFA Token: ")
+        except EOFError:
+            raise GracefulExit
+        except KeyboardInterrupt:
+            sys.exit(1)
         try:
             response = client.get_session_token(
                 DurationSeconds=SESSION_TOKEN_DURATION,
@@ -220,3 +269,7 @@ def validate_account(account):
         )
 
     return accounts[account]
+
+
+class GracefulExit(Exception):
+    pass
