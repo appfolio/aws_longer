@@ -113,7 +113,7 @@ def main():
     parser.add_argument(
         "-m",
         "--mfa-token",
-        help="When a MFA token is required, pass in this value instead of prompting for it.",
+        help="When an MFA token is required, pass in this value instead of prompting for it.",
     )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
@@ -164,7 +164,7 @@ def mfa_serial_number():
         sys.exit(1)
     assert (
         len(devices) == 1
-    ), "How is it possible that there is more than one MFA device?"
+    ), "How is it possible that there are more than one MFA device?"
     return devices[0]["SerialNumber"]
 
 
