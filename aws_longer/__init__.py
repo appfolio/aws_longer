@@ -17,6 +17,7 @@ ACCOUNT_MAPPING_FILENAME = os.path.expanduser("~/.aws/accounts")
 KEYRING_SERVICE_NAME = "aws_longer"
 ROLE_TOKEN_DURATION = 3600
 SESSION_TOKEN_DURATION = 129600
+SESSION_KEYRING_USERNAME = "__SESSION__"
 
 
 def _boto3_session_closure():
@@ -40,7 +41,7 @@ def cache_in_keyring(function):
         if kwargs.get("account"):
             username = f"{kwargs['account']}_{kwargs['role']}"
         else:
-            username = "__SESSION__"
+            username = SESSION_KEYRING_USERNAME
 
         serialized = keyring.get_password(
             service_name=KEYRING_SERVICE_NAME, username=username
@@ -80,7 +81,7 @@ def handle_cleanup(arguments):
     if arguments.command == "role":
         username = f"{arguments.account}_{arguments.role}"
     else:
-        username = ""
+        username = SESSION_KEYRING_USERNAME
     try:
         keyring.delete_password(service_name=KEYRING_SERVICE_NAME, username=username)
     except keyring.errors.PasswordDeleteError:
