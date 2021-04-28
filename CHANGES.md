@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 0.4.0 (2021/04/28)
 
 __Changed__
 
