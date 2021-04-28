@@ -171,7 +171,7 @@ def main():
         if arguments.yubikey is None:
             return None
         try:
-            import ykman
+            import ykman  # noqa: F401
         except ModuleNotFoundError:
             print(
                 "Please ensure ykman is installed. Try: `pip install aws_longer[yubikey]`"
@@ -206,7 +206,7 @@ def mfa_serial_number():
     response = client.list_mfa_devices()
     devices = response["MFADevices"]
     if not devices:
-        sys.stderr.write(f"No MFA devices found.\n")
+        sys.stderr.write("No MFA devices found.\n")
         sys.exit(1)
     assert (
         len(devices) == 1
