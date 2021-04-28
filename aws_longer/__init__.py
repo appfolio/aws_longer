@@ -77,6 +77,10 @@ def discover_shell():
     return os.environ.get("SHELL", "/bin/sh")
 
 
+def get_aws_username():
+    return boto3_session().client("iam").get_user()["User"]["UserName"]
+
+
 def get_token(arguments, mfa_token_callback):
     if arguments.command == "role":
 
@@ -114,7 +118,7 @@ def role_token(client_callback, *, account, role):
         DurationSeconds=ROLE_TOKEN_DURATION,
         ExternalId=account,
         RoleArn=f"arn:aws:iam::{account}:role/{role}",
-        RoleSessionName=os.environ.get("USER", "__"),
+        RoleSessionName=get_aws_username(),
     )
     return response["Credentials"]
 
