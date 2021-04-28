@@ -77,6 +77,10 @@ def discover_shell():
     return os.environ.get("SHELL", "/bin/sh")
 
 
+def get_aws_username():
+    return boto3_session().client("iam").get_user()["User"]["UserName"]
+
+
 def get_token(arguments, mfa_token_callback):
     if arguments.command == "role":
 
@@ -107,10 +111,6 @@ def handle_cleanup(arguments):
     except keyring.errors.PasswordDeleteError:
         pass
 
-def get_aws_username() -> str:
-    '''Retrieve canonical aws username for session identifiers.'''
-    username = boto3.client('iam').get_user()['User']['UserName']
-    return username
 
 @cache_in_keyring
 def role_token(client_callback, *, account, role):
@@ -118,7 +118,7 @@ def role_token(client_callback, *, account, role):
         DurationSeconds=ROLE_TOKEN_DURATION,
         ExternalId=account,
         RoleArn=f"arn:aws:iam::{account}:role/{role}",
-        RoleSessionName=get_aws_username()
+        RoleSessionName=get_aws_username(),
     )
     return response["Credentials"]
 
