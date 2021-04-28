@@ -1,5 +1,11 @@
 # Change Log
 
+## Unreleased
+
+__Changed__
+
+* Use IAM `UserName` for `RoleSession` name instead of the OS username.
+
 ## 0.3.0 (2020/04/17)
 
 __Added__
