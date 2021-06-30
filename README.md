@@ -1,3 +1,11 @@
+# aws_(no)longer
+
+A coworker pointed out that another tools exists satisfying this need. As a result I see no reason to continue to support this project.
+
+Please use AWSume: https://awsu.me/
+
+---
+
 # aws_longer
 
 `aws_longer` is a tool to replace
